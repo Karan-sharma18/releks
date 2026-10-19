@@ -32,37 +32,87 @@
 #           output_type: issue
 
 
-name: Deploy to Docker
+# name: Deploy to Docker
+
+# on:
+#   push:
+#     branches:
+#       - main  # Trigger workflow on push to the main branch
+
+# jobs:
+#   build-and-deploy:
+#     runs-on: ubuntu-latest  # You can also use other runners like `ubuntu-20.04`
+
+#     steps:
+#     - name: Check out code
+#       uses: actions/checkout@v2
+
+#     - name: Set up Docker Buildx
+#       uses: docker/setup-buildx-action@v2
+
+#     - name: Log in to Docker Hub
+#       uses: docker/login-action@v2
+#       with:
+#         username: ${{ secrets.DOCKER_USERNAME }}
+#         password: ${{ secrets.DOCKER_PASSWORD }}
+
+#     - name: Build Docker image
+#       run: |
+#         docker build -t iamkarans/relicstaurants:v1 .
+      
+#     - name: Push Docker image to Docker Hub
+#       run: |
+#         docker push iamkarans/relicstaurants:v1
+
+#     - name: Logout from Docker Hub
+#       run: docker logout
+
+
+name: Deploy to Amazon ECR
 
 on:
   push:
     branches:
-      - main  # Trigger workflow on push to the main branch
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest  # You can also use other runners like `ubuntu-20.04`
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Check out code
-      uses: actions/checkout@v2
+      - name: Check out code
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build Docker image
-      run: |
-        docker build -t iamkarans/relicstaurants:v1 .
-      
-    - name: Push Docker image to Docker Hub
-      run: |
-        docker push iamkarans/relicstaurants:v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Logout from Docker Hub
-      run: docker logout
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./frontend.Docker
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_FRONTEND_REPOSITORY }}:v1
+
+      # - name: Build and push menu image
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     context: .
+      #     file: ./menu.Docker
+      #     push: true
+      #     tags: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_MENU_REPOSITORY }}:v1
