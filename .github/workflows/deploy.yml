@@ -215,7 +215,7 @@ env:
   AWS_ACCOUNT_ID: "596319332793"
   ECR_REPOSITORY: relicstaurants-frontend
   EKS_CLUSTER_NAME: releks-cluster
-  K8S_NAMESPACE: one
+  K8S_NAMESPACE:  
   DEPLOYMENT_NAME: releks-frontend
   CONTAINER_NAME: frontend
 
